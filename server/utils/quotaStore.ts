@@ -83,6 +83,23 @@ export async function countUsage(
   return countToday(ipHash)
 }
 
+function isMissingEmailColumnError(err: unknown): boolean {
+  const msg = String(
+    (err as { data?: { message?: string }; message?: string; statusMessage?: string })?.data
+      ?.message ||
+      (err as { message?: string })?.message ||
+      (err as { statusMessage?: string })?.statusMessage ||
+      err ||
+      '',
+  ).toLowerCase()
+  // PostgREST / Postgres when `email` column is absent from schema
+  return (
+    (msg.includes('email') &&
+      (msg.includes('column') || msg.includes('schema cache') || msg.includes('could not find'))) ||
+    msg.includes('pgrst204')
+  )
+}
+
 export async function recordGeneration(
   ipHash: string,
   result: unknown,
@@ -96,8 +113,9 @@ export async function recordGeneration(
         method: 'POST',
         body,
       })
-    } catch {
-      // email column may be missing on older DBs — retry without it
+    } catch (err) {
+      if (!email || !isMissingEmailColumnError(err)) throw err
+      // Only drop email when the DB clearly lacks that column
       await sbFetch('/rest/v1/aislides_generations', {
         method: 'POST',
         body: { ip_hash: ipHash, result },
