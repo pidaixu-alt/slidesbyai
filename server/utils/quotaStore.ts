@@ -1,4 +1,10 @@
 import type { PlanKey } from './quotaShared'
+import {
+  remainingPaid,
+  monthKey,
+  paidMonthlyLimit,
+  paidMaxPerDayLimit,
+} from './quotaShared'
 
 export type QuotaRow = {
   ip_hash: string
@@ -12,6 +18,7 @@ export type QuotaRow = {
 }
 
 const memQuota = new Map<string, QuotaRow>()
+/** key: `${subject}:${todayKey()}` or `${subject}:${monthKey()}` */
 const memUsed = new Map<string, number>()
 const memIntents: { ip_hash: string; plan: string; created_at: number; consumed: boolean; email: string | null }[] = []
 const memEvents = new Set<string>()
@@ -39,30 +46,77 @@ export async function countToday(ipHash: string): Promise<number> {
   if (supabaseConfigured()) {
     const startOfDay = todayKey() + 'T00:00:00.000Z'
     const rows: any[] = await sbFetch(
-      `/rest/v1/tagtool_generations?ip_hash=eq.${ipHash}&created_at=gte.${startOfDay}&select=id`,
+      `/rest/v1/aislides_generations?ip_hash=eq.${ipHash}&created_at=gte.${startOfDay}&select=id`,
     )
     return Array.isArray(rows) ? rows.length : 0
   }
   return memUsed.get(`${ipHash}:${todayKey()}`) || 0
 }
 
-export async function recordGeneration(ipHash: string, result: unknown) {
+/** Calendar-month UTC count; prefer email subject when provided. */
+export async function countMonth(subject: string): Promise<number> {
+  const mk = monthKey()
   if (supabaseConfigured()) {
-    await sbFetch('/rest/v1/tagtool_generations', {
-      method: 'POST',
-      body: { ip_hash: ipHash, result },
-    })
+    const startOfMonth = `${mk}-01T00:00:00.000Z`
+    const isEmail = subject.includes('@')
+    const filter = isEmail
+      ? `email=eq.${encodeURIComponent(subject)}`
+      : `ip_hash=eq.${encodeURIComponent(subject)}`
+    const rows: any[] = await sbFetch(
+      `/rest/v1/aislides_generations?${filter}&created_at=gte.${startOfMonth}&select=id`,
+    )
+    return Array.isArray(rows) ? rows.length : 0
+  }
+  return memUsed.get(`${subject}:${mk}`) || 0
+}
+
+/** Day for free; calendar month UTC for paid (prefer email when paid). */
+export async function countUsage(
+  ipHash: string,
+  email: string | null | undefined,
+  paid: boolean,
+): Promise<number> {
+  if (paid) {
+    const subject = (email && email.trim()) || ipHash
+    return countMonth(subject)
+  }
+  return countToday(ipHash)
+}
+
+export async function recordGeneration(
+  ipHash: string,
+  result: unknown,
+  email?: string | null,
+) {
+  if (supabaseConfigured()) {
+    const body: Record<string, unknown> = { ip_hash: ipHash, result }
+    if (email) body.email = email
+    try {
+      await sbFetch('/rest/v1/aislides_generations', {
+        method: 'POST',
+        body,
+      })
+    } catch {
+      // email column may be missing on older DBs — retry without it
+      await sbFetch('/rest/v1/aislides_generations', {
+        method: 'POST',
+        body: { ip_hash: ipHash, result },
+      })
+    }
     return
   }
-  const key = `${ipHash}:${todayKey()}`
-  memUsed.set(key, (memUsed.get(key) || 0) + 1)
+  const dayKey = `${ipHash}:${todayKey()}`
+  memUsed.set(dayKey, (memUsed.get(dayKey) || 0) + 1)
+  const subject = (email && email.trim()) || ipHash
+  const mk = `${subject}:${monthKey()}`
+  memUsed.set(mk, (memUsed.get(mk) || 0) + 1)
 }
 
 async function ensureQuotaRow(ipHash: string): Promise<QuotaRow> {
   if (supabaseConfigured()) {
-    const rows: any[] = await sbFetch(`/rest/v1/tagtool_quotas?ip_hash=eq.${ipHash}&select=*`)
+    const rows: any[] = await sbFetch(`/rest/v1/aislides_quotas?ip_hash=eq.${ipHash}&select=*`)
     if (Array.isArray(rows) && rows[0]) return rows[0] as QuotaRow
-    const created: any[] = await sbFetch('/rest/v1/tagtool_quotas', {
+    const created: any[] = await sbFetch('/rest/v1/aislides_quotas', {
       method: 'POST',
       body: { ip_hash: ipHash, bonus_credits: 0, plan: 'free' },
     })
@@ -74,7 +128,7 @@ async function ensureQuotaRow(ipHash: string): Promise<QuotaRow> {
 
 async function saveQuota(row: QuotaRow) {
   if (supabaseConfigured()) {
-    await sbFetch(`/rest/v1/tagtool_quotas?ip_hash=eq.${row.ip_hash}`, {
+    await sbFetch(`/rest/v1/aislides_quotas?ip_hash=eq.${row.ip_hash}`, {
       method: 'PATCH',
       body: {
         bonus_credits: row.bonus_credits,
@@ -96,7 +150,7 @@ export async function getQuotaState(ipHash: string, email?: string | null) {
   if (email && supabaseConfigured()) {
     try {
       const byEmail: any[] = await sbFetch(
-        `/rest/v1/tagtool_quotas?email=eq.${encodeURIComponent(email)}&select=*&limit=1`,
+        `/rest/v1/aislides_quotas?email=eq.${encodeURIComponent(email)}&select=*&limit=1`,
       )
       if (Array.isArray(byEmail) && byEmail[0] && isPaid(byEmail[0])) {
         row = byEmail[0] as QuotaRow
@@ -107,14 +161,48 @@ export async function getQuotaState(ipHash: string, email?: string | null) {
     } catch {
       /* keep IP row */
     }
+  } else if (email && !row.email) {
+    row.email = email
+    await saveQuota(row)
   }
-  const used = await countToday(ipHash)
+
   const paid = isPaid(row)
   const dailyFree = dailyFreeLimit()
-  const hardCap = hardCapLimit()
-  const allowance = paid ? hardCap : dailyFree + (row.bonus_credits || 0)
+  const monthlyCap = paidMonthlyLimit()
+  const dailyCap = paidMaxPerDayLimit()
+
+  if (paid) {
+    const used = await countUsage(ipHash, email || row.email, true)
+    const dailyUsed = await countToday(ipHash)
+    const allowance = monthlyCap
+    const remaining = remainingPaid(used, monthlyCap, dailyUsed, dailyCap)
+    return {
+      row,
+      used,
+      paid,
+      period: 'month' as const,
+      dailyFree,
+      hardCap: monthlyCap,
+      allowance,
+      remaining,
+      dailyUsed,
+      dailyCap,
+    }
+  }
+
+  const used = await countUsage(ipHash, email, false)
+  const allowance = dailyFree + (row.bonus_credits || 0)
   const remaining = Math.max(allowance - used, 0)
-  return { row, used, paid, dailyFree, hardCap, allowance, remaining }
+  return {
+    row,
+    used,
+    paid,
+    period: 'day' as const,
+    dailyFree,
+    hardCap: hardCapLimit(),
+    allowance,
+    remaining,
+  }
 }
 
 export async function claimSignupBonus(ipHash: string) {
@@ -136,12 +224,12 @@ export async function createCheckoutIntent(
 ) {
   if (supabaseConfigured()) {
     try {
-      await sbFetch('/rest/v1/tagtool_checkout_intents', {
+      await sbFetch('/rest/v1/aislides_checkout_intents', {
         method: 'POST',
         body: { ip_hash: ipHash, plan, email: email || null },
       })
     } catch {
-      await sbFetch('/rest/v1/tagtool_checkout_intents', {
+      await sbFetch('/rest/v1/aislides_checkout_intents', {
         method: 'POST',
         body: { ip_hash: ipHash, plan },
       })
@@ -166,17 +254,17 @@ export async function applyPaidPlan(opts: {
     let intents: any[] = []
     if (opts.email) {
       intents = await sbFetch(
-        `/rest/v1/tagtool_checkout_intents?email=eq.${encodeURIComponent(opts.email)}&plan=eq.${opts.plan}&consumed_at=is.null&created_at=gte.${since}&order=created_at.desc&limit=1`,
+        `/rest/v1/aislides_checkout_intents?email=eq.${encodeURIComponent(opts.email)}&plan=eq.${opts.plan}&consumed_at=is.null&created_at=gte.${since}&order=created_at.desc&limit=1`,
       )
     }
     if (!intents?.[0]) {
       intents = await sbFetch(
-        `/rest/v1/tagtool_checkout_intents?plan=eq.${opts.plan}&consumed_at=is.null&created_at=gte.${since}&order=created_at.asc&limit=1`,
+        `/rest/v1/aislides_checkout_intents?plan=eq.${opts.plan}&consumed_at=is.null&created_at=gte.${since}&order=created_at.asc&limit=1`,
       )
     }
     if (intents?.[0]?.ip_hash) {
       ipHash = intents[0].ip_hash
-      await sbFetch(`/rest/v1/tagtool_checkout_intents?id=eq.${intents[0].id}`, {
+      await sbFetch(`/rest/v1/aislides_checkout_intents?id=eq.${intents[0].id}`, {
         method: 'PATCH',
         body: { consumed_at: new Date().toISOString() },
       })
@@ -197,7 +285,7 @@ export async function applyPaidPlan(opts: {
 
   if (!ipHash && opts.email && supabaseConfigured()) {
     const existing: any[] = await sbFetch(
-      `/rest/v1/tagtool_quotas?email=eq.${encodeURIComponent(opts.email)}&select=ip_hash&limit=1`,
+      `/rest/v1/aislides_quotas?email=eq.${encodeURIComponent(opts.email)}&select=ip_hash&limit=1`,
     )
     ipHash = existing?.[0]?.ip_hash || null
   }
@@ -226,7 +314,7 @@ export async function revokePaidPlan(email?: string | null, subscriptionId?: str
         ? `email=eq.${encodeURIComponent(email)}`
         : ''
     if (!filter) return
-    await sbFetch(`/rest/v1/tagtool_quotas?${filter}`, {
+    await sbFetch(`/rest/v1/aislides_quotas?${filter}`, {
       method: 'PATCH',
       body: { plan: 'free', plan_expires_at: new Date().toISOString() },
     })
@@ -244,7 +332,7 @@ export async function markWebhookEvent(eventId: string): Promise<boolean> {
   if (!eventId) return true
   if (supabaseConfigured()) {
     try {
-      await sbFetch('/rest/v1/tagtool_webhook_events', {
+      await sbFetch('/rest/v1/aislides_webhook_events', {
         method: 'POST',
         body: { event_id: eventId },
       })

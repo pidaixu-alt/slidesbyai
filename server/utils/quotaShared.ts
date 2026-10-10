@@ -29,6 +29,22 @@ export function todayKey() {
   return new Date().toISOString().slice(0, 10)
 }
 
+export function monthKey(d: Date = new Date()) {
+  return d.toISOString().slice(0, 7) // YYYY-MM
+}
+
+/** Paid remaining = min(month left, day left). Caps default to Plan A: 30/mo, 10/day. */
+export function remainingPaid(
+  used: number,
+  monthlyCap = 30,
+  dailyUsed = 0,
+  dailyCap = 10,
+) {
+  const monthLeft = Math.max(monthlyCap - used, 0)
+  const dayLeft = Math.max(dailyCap - dailyUsed, 0)
+  return Math.min(monthLeft, dayLeft)
+}
+
 export function getIpHash(event: any): string {
   const ip =
     event.node.req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() ||
@@ -57,7 +73,18 @@ export async function sbFetch(path: string, init: any = {}) {
 }
 
 export function dailyFreeLimit() {
+  // Defaults align with SITE.freePerDay (Plan A)
   return parseInt(process.env.DAILY_FREE_LIMIT || '1', 10)
+}
+
+export function paidMonthlyLimit() {
+  // Defaults align with SITE.paidPerMonth (Plan A)
+  return parseInt(process.env.PAID_MONTHLY_LIMIT || '30', 10)
+}
+
+export function paidMaxPerDayLimit() {
+  // Defaults align with SITE.paidMaxPerDay (Plan A anti-abuse)
+  return parseInt(process.env.PAID_DAILY_HARD_CAP || '10', 10)
 }
 
 export function signupBonusLimit() {

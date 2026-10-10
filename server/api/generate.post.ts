@@ -93,6 +93,7 @@ export default defineEventHandler(async (event) => {
       },
       used: 0,
       paid: false,
+      period: 'day' as const,
       dailyFree: dailyFreeLimit(),
       hardCap: hardCapLimit(),
       allowance: dailyFreeLimit(),
@@ -177,7 +178,7 @@ export default defineEventHandler(async (event) => {
 
   // --- record usage ---
   try {
-    await recordGeneration(ipHash, { tags, titles })
+    await recordGeneration(ipHash, { tags, titles }, user?.email)
   } catch (e) {
     console.error('Record generation failed (non-fatal):', e)
   }
