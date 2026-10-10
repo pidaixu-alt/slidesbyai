@@ -41,8 +41,8 @@ function friendlyAuthError(e: any) {
   if (lower.includes('email not confirmed') || lower.includes('not confirmed')) {
     return 'Please confirm your email first, then try logging in again.'
   }
-  if (lower.includes('no tagtery account') || lower.includes('create an account first')) {
-    return 'No Tagtery account uses this email. Create an account first, then you can reset the password.'
+  if (lower.includes('no slides by ai account') || lower.includes('no tagtery account') || lower.includes('create an account first')) {
+    return 'No Slides by AI account uses this email. Create an account first, then you can reset the password.'
   }
   if (lower.includes('could not send the reset')) {
     return 'Could not send the reset email. Please try again in a minute.'
@@ -177,7 +177,7 @@ async function onSubmit() {
     <div v-if="modal.open" class="quota-overlay" @click.self="closeAuth()">
       <div class="quota-modal auth-modal" role="dialog" aria-modal="true" :aria-labelledby="'auth-title'">
         <button class="quota-close" type="button" aria-label="Close" @click="closeAuth()">×</button>
-        <p class="quota-kicker">{{ modal.pendingPlan ? 'Account required to checkout' : 'Your Tagtery account' }}</p>
+        <p class="quota-kicker">{{ modal.pendingPlan ? 'Account required to checkout' : 'Your Slides by AI account' }}</p>
         <h2 id="auth-title">{{ title }}</h2>
         <p class="quota-copy">
           {{

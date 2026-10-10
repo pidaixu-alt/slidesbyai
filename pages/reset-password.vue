@@ -2,8 +2,8 @@
 const { updatePassword } = useAuth()
 
 useSeoMeta({
-  title: 'Reset password — Tagtery',
-  description: 'Set a new password for your Tagtery account.',
+  title: 'Reset password — Slides by AI',
+  description: 'Set a new password for your Slides by AI account.',
 })
 
 const password = ref('')
@@ -59,19 +59,19 @@ async function onSubmit() {
   <div class="wrap">
     <SiteHeader hide-auth />
     <section class="section" style="padding-top: 28px; max-width: 480px">
-      <p class="quota-kicker">Your Tagtery account</p>
+      <p class="quota-kicker">Your Slides by AI account</p>
       <h1 style="font-size: 28px">Set a new password</h1>
 
       <p v-if="!ready" class="quota-copy">Checking your reset link…</p>
 
       <template v-else-if="saved">
         <p class="auth-notice">Password updated. You can log in with it now.</p>
-        <NuxtLink class="quota-cta" to="/" style="margin-top: 16px; text-align: center">Back to Tagtery</NuxtLink>
+        <NuxtLink class="quota-cta" to="/" style="margin-top: 16px; text-align: center">Back to Slides by AI</NuxtLink>
       </template>
 
       <template v-else-if="!hasRecovery">
         <p class="quota-copy">This reset link is invalid or expired. Open the login window and tap Forgot password to get a new email.</p>
-        <NuxtLink class="quota-cta" to="/" style="margin-top: 8px; text-align: center">Back to Tagtery</NuxtLink>
+        <NuxtLink class="quota-cta" to="/" style="margin-top: 8px; text-align: center">Back to Slides by AI</NuxtLink>
       </template>
 
       <form v-else class="auth-form" style="margin-top: 18px" @submit.prevent="onSubmit">

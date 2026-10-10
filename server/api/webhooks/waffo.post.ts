@@ -1,7 +1,7 @@
 /**
  * Waffo Pancake webhook.
  * Dashboard → Settings → Webhooks → HTTP →
- *   https://www.tagtery.com/api/webhooks/waffo
+ *   https://www.slidesbyai.com/api/webhooks/waffo
  */
 
 import { verifyWebhook, WebhookEventType } from '@waffo/pancake-ts'

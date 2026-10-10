@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
       currency: 'USD',
       buyerIdentity: user.id,
       buyerEmail: user.email,
-      successUrl: 'https://www.tagtery.com/',
+      successUrl: 'https://www.slidesbyai.com/',
       metadata: {
         plan,
         email: user.email,

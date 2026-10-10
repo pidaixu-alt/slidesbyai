@@ -31,14 +31,17 @@ export default defineEventHandler(async (event) => {
   if (!found) {
     throw createError({
       statusCode: 404,
-      message: 'No Tagtery account uses this email. Create an account first, then you can reset the password.',
+      message: 'No Slides by AI account uses this email. Create an account first, then you can reset the password.',
     })
   }
+
+  const apexUrl = (process.env.SITE_URL || 'https://www.slidesbyai.com').replace(/\/$/, '')
+  const redirectTo = `${apexUrl}/reset-password`
 
   try {
     await $fetch(`${url}/auth/v1/recover`, {
       method: 'POST',
-      query: { redirect_to: 'https://www.tagtery.com/reset-password' },
+      query: { redirect_to: redirectTo },
       headers: {
         apikey: anon,
         Authorization: `Bearer ${anon}`,
