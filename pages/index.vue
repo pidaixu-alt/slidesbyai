@@ -1,24 +1,69 @@
 <script setup lang="ts">
+type SlidePage = { title: string; bullets: string[] }
+
 const SITE = useSite()
 const { authHeaders } = useAuth()
 
 // ---------- generate ----------
-const description = ref('')
+const topic = ref('')
 const loading = ref(false)
-const result = ref<{ tags: string[]; titles: string[] } | null>(null)
+const pages = ref<SlidePage[] | null>(null)
+const pptxBase64 = ref<string | null>(null)
+const pagesDirty = ref(false)
 const error = ref('')
 const remaining = ref<number | null>(null)
 const upgraded = ref(false)
 const showQuotaModal = ref(false)
+const downloading = ref(false)
 
 const MAX_CHARS = 2000
 const canSubmit = computed(
-  () => !loading.value && description.value.trim().length >= 10,
+  () => !loading.value && topic.value.trim().length >= 5,
 )
+
+const EXAMPLE_CHIPS = [
+  {
+    label: 'Pitch',
+    topic: 'Series A pitch deck for a B2B SaaS analytics startup targeting mid-market retailers',
+  },
+  {
+    label: 'Lesson',
+    topic: 'Introduction to photosynthesis for a middle-school science lesson',
+  },
+  {
+    label: 'Report',
+    topic: 'Q3 marketing results report for a regional coffee shop chain',
+  },
+] as const
+
+function applyChip(example: string) {
+  topic.value = example
+}
 
 function openQuotaModal() {
   upgraded.value = true
   showQuotaModal.value = true
+}
+
+function markDirty() {
+  pagesDirty.value = true
+}
+
+function addBullet(pageIndex: number) {
+  if (!pages.value) return
+  pages.value[pageIndex].bullets.push('')
+  markDirty()
+}
+
+function removeBullet(pageIndex: number, bulletIndex: number) {
+  if (!pages.value) return
+  const bullets = pages.value[pageIndex].bullets
+  if (bullets.length <= 1) {
+    bullets[0] = ''
+  } else {
+    bullets.splice(bulletIndex, 1)
+  }
+  markDirty()
 }
 
 async function generate() {
@@ -32,10 +77,15 @@ async function generate() {
   try {
     const res: any = await $fetch('/api/generate', {
       method: 'POST',
-      body: { description: description.value },
+      body: { topic: topic.value },
       headers: authHeaders(),
     })
-    result.value = { tags: res.tags, titles: res.titles }
+    pages.value = (res.pages || []).map((p: SlidePage) => ({
+      title: p.title,
+      bullets: [...(p.bullets || [])],
+    }))
+    pptxBase64.value = res.pptxBase64 || null
+    pagesDirty.value = false
     remaining.value = res.remaining
     if (res.paid) {
       upgraded.value = false
@@ -58,61 +108,82 @@ async function generate() {
   }
 }
 
-// ---------- copy ----------
-const copiedRef = ref('') // which element was just copied
-
-async function copy(text: string, id: string) {
-  try {
-    await navigator.clipboard.writeText(text)
-    copiedRef.value = id
-    setTimeout(() => (copiedRef.value = ''), 1500)
-  } catch {
-    /* clipboard unavailable */
-  }
+function downloadBlob(base64: string, filename: string) {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  const blob = new Blob([bytes], {
+    type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
-function copyAll() {
-  if (!result.value) return
-  const tags = result.value.tags.map((t) => t).join(', ')
-  const titles = result.value.titles
-    .map((t, i) => `Title ${i + 1}: ${t}`)
-    .join('\n')
-  copy(`TAGS (${result.value.tags.length}):\n${tags}\n\nTITLES:\n${titles}`, 'all')
+async function downloadPptx() {
+  if (!pages.value?.length || downloading.value) return
+  downloading.value = true
+  error.value = ''
+  try {
+    let base64 = pptxBase64.value
+    if (pagesDirty.value || !base64) {
+      const res: any = await $fetch('/api/export', {
+        method: 'POST',
+        body: { pages: pages.value },
+        headers: authHeaders(),
+      })
+      base64 = res.pptxBase64
+      pptxBase64.value = base64
+      pagesDirty.value = false
+    }
+    if (!base64) {
+      error.value = 'Could not build the PowerPoint file. Please try again.'
+      return
+    }
+    downloadBlob(base64, 'slides-by-ai.pptx')
+  } catch (e: any) {
+    error.value = e?.data?.message || e?.message || 'Download failed. Please try again.'
+  } finally {
+    downloading.value = false
+  }
 }
 
 // ---------- FAQ data (also used for JSON-LD) ----------
 const faqs = [
   {
-    q: 'How many tags should I use on Etsy?',
-    a: "Use all 13 tags Etsy allows. Most sellers only add a few, so filling all 13 with long-tail phrases is one of the easiest ways to outrank competitors.",
+    q: 'What are AI slides?',
+    a: 'AI slides are presentation decks drafted by a language model from a short topic or brief. You get structured pages with titles and bullets you can edit, then download as PPTX.',
   },
   {
-    q: 'What makes a good Etsy tag?',
-    a: "Specific, long-tail phrases beat broad keywords. \u201cpersonalized dog mom mug\u201d will bring more relevant shoppers than \u201cmug\u201d. Mix category, material, style, and occasion terms.",
+    q: 'How does this AI slides generator work?',
+    a: 'Enter a topic, pick an example chip if you like, and generate. You get a 5–12 page outline (plan-dependent), edit titles and bullets, then download a PowerPoint file.',
   },
   {
-    q: 'How does this Etsy tag generator work?',
-    a: 'Paste your product description and it generates 13 tags and 5 title options that follow Etsy\u2019s character limits. No keyword research or SEO knowledge needed.',
+    q: 'Is this AI slides tool free?',
+    a: `Yes \u2014 ${SITE.freePerDay} free generation per day (up to ${SITE.freeMaxPages} pages, with watermark). Paid plans from $${SITE.plans.monthly.price}/month include ${SITE.paidPerMonth} presentations/month and remove the watermark.`,
   },
   {
-    q: 'Is this Etsy tag generator free?',
-    a: `Yes \u2014 ${SITE.freePerDay} free generation per day, no signup required. Paid plans from $${SITE.plans.monthly.price}/month remove the limit and add history.`,
+    q: 'Can I edit the slides before downloading?',
+    a: 'Yes. Every slide title and bullet is editable in the browser. After you change text, Download rebuilds the PPTX from your edits without using another generation credit.',
   },
   {
-    q: 'Can I copy these tags directly into my Etsy listing?',
-    a: 'Yes. Every tag is under Etsy\u2019s 20-character limit and every title under 140 characters, so you can paste them straight into your listing.',
+    q: 'What file format do I get?',
+    a: 'A standard .pptx file you can open in PowerPoint, Google Slides, Keynote, and most other presentation apps.',
   },
   {
-    q: 'Does it work for my category? (digital downloads, jewelry, candles\u2026)',
-    a: 'Yes, it works for all Etsy categories. The more detail you paste (materials, occasion, style, who it\u2019s for), the better the tags.',
+    q: 'How many pages does each deck include?',
+    a: `Free runs are capped at ${SITE.freeMaxPages} pages. Paid plans allow up to ${SITE.paidMaxPages} pages per presentation.`,
   },
   {
-    q: 'What\u2019s the difference between Etsy tags and attributes?',
-    a: 'Tags are 13 keyword slots you choose; attributes are fixed dropdowns like color and occasion set by Etsy. Both count toward search \u2014 use both.',
+    q: 'Do free downloads include a watermark?',
+    a: 'Yes. Free exports add a final watermark slide. Paid plans remove it.',
   },
   {
-    q: 'How long can Etsy titles be?',
-    a: '140 characters. Front-load your most important keywords in the first 40 \u2014 that\u2019s what shows in search results on mobile.',
+    q: 'What topics work best?',
+    a: 'Be specific: audience, goal, and context. Pitch, lesson, and report chips are good starting points for AI slides that stay focused.',
   },
 ]
 
@@ -124,12 +195,12 @@ useHead({
       innerHTML: JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'SoftwareApplication',
-        name: 'Etsy Tag Generator',
+        name: 'Slides by AI',
         applicationCategory: 'BusinessApplication',
         operatingSystem: 'Web',
         url: SITE.url,
         description:
-          'Generate 13 ready-to-use Etsy tags and 5 optimized listing titles from your product description.',
+          'Generate editable AI slides from a topic and download PPTX. Free daily trial; paid plans for more presentations.',
         offers: { '@type': 'Offer', price: '9.00', priceCurrency: 'USD' },
       }),
     },
@@ -149,12 +220,12 @@ useHead({
 })
 
 useSeoMeta({
-  title: 'Etsy Tag Generator — 13 Ready-to-Use Tags & 5 Titles (Free)',
+  title: 'AI Slides Generator — Topic to Editable PPTX (Free)',
   description:
-    'Paste your product description and instantly get 13 ready-to-use Etsy tags and 5 optimized titles. Free, no signup. Works for all categories.',
-  ogTitle: 'Etsy Tag Generator — 13 Ready-to-Use Tags & 5 Titles',
+    'Create AI slides from a topic in seconds. Edit titles and bullets, then download PPTX. Free daily trial — no signup required.',
+  ogTitle: 'AI Slides Generator — Topic to Editable PPTX',
   ogDescription:
-    'Paste your product description and instantly get 13 ready-to-use Etsy tags and 5 optimized titles. Free, no signup.',
+    'Create AI slides from a topic in seconds. Edit titles and bullets, then download PPTX. Free daily trial — no signup required.',
 })
 </script>
 
@@ -164,22 +235,33 @@ useSeoMeta({
 
     <!-- Hero + Tool -->
     <section class="hero">
-      <h1>Etsy Tag Generator</h1>
+      <h1>Slides by AI</h1>
       <p class="sub">
-        Get 13 ready-to-use tags and 5 optimized titles for your listing in seconds.
-        Just paste your product description — no keyword research, no signup.
+        Turn a topic into editable AI slides and download a PowerPoint deck in minutes.
+        Free to try — no signup required.
       </p>
 
       <div class="tool-card">
         <textarea
-          v-model="description"
+          v-model="topic"
           :maxlength="MAX_CHARS"
-          placeholder="Paste your product description here… e.g. Handmade soy wax candle, lavender &amp; vanilla scent, poured in a reusable amber glass jar, 40h burn time, perfect as a gift for mom or housewarming."
+          placeholder="Describe your presentation… e.g. Q3 marketing plan for a coffee shop, or a 20-minute lesson on climate change for grade 8."
         />
+        <div class="chip-row" role="group" aria-label="Example topics">
+          <button
+            v-for="chip in EXAMPLE_CHIPS"
+            :key="chip.label"
+            type="button"
+            class="chip-btn"
+            @click="applyChip(chip.topic)"
+          >
+            {{ chip.label }}
+          </button>
+        </div>
         <div class="tool-row">
-          <span class="char-count">{{ description.length }} / {{ MAX_CHARS }}</span>
+          <span class="char-count">{{ topic.length }} / {{ MAX_CHARS }}</span>
           <button class="btn-primary" :disabled="!canSubmit" @click="generate">
-            <span v-if="!loading">Generate Tags →</span>
+            <span v-if="!loading">Generate Slides →</span>
             <span v-else>Generating…</span>
           </button>
         </div>
@@ -188,9 +270,9 @@ useSeoMeta({
     </section>
 
     <!-- Results -->
-    <section v-if="result" id="results" class="result-section">
+    <section v-if="pages" id="results" class="result-section">
       <div class="result-head">
-        <h2>Your {{ result.tags.length }} Tags</h2>
+        <h2>Your {{ pages.length }} Slides</h2>
         <span class="remaining">
           <template v-if="remaining !== null && remaining > 0">
             {{ remaining }} free {{ remaining === 1 ? 'generation' : 'generations' }} left today
@@ -202,54 +284,64 @@ useSeoMeta({
         </span>
       </div>
 
-      <div class="tags-grid">
-        <span v-for="(t, i) in result.tags" :key="'tag' + i" class="tag-pill">
-          {{ t }} <span class="len">{{ t.length }}/20</span>
-        </span>
-      </div>
-
-      <div class="result-head" style="margin-top: 34px">
-        <h2>Your {{ result.titles.length }} Title Options</h2>
-      </div>
-      <div class="titles-list">
-        <div v-for="(t, i) in result.titles" :key="'title' + i" class="title-card">
-          <p>{{ t }}</p>
-          <div class="title-meta">
-            <span>{{ t.length }}/140 characters</span>
-            <button
-              class="copy-btn"
-              :class="{ copied: copiedRef === 'title' + i }"
-              @click="copy(t, 'title' + i)"
-            >
-              {{ copiedRef === 'title' + i ? 'Copied ✓' : 'Copy' }}
-            </button>
-          </div>
+      <div class="slides-list">
+        <div v-for="(page, pi) in pages" :key="'page' + pi" class="slide-card">
+          <div class="slide-label">Slide {{ pi + 1 }}</div>
+          <input
+            v-model="page.title"
+            class="slide-title-input"
+            type="text"
+            :aria-label="'Title for slide ' + (pi + 1)"
+            @input="markDirty"
+          />
+          <ul class="slide-bullets">
+            <li v-for="(_b, bi) in page.bullets" :key="'b' + pi + '-' + bi">
+              <input
+                v-model="page.bullets[bi]"
+                class="slide-bullet-input"
+                type="text"
+                :aria-label="'Bullet ' + (bi + 1) + ' on slide ' + (pi + 1)"
+                @input="markDirty"
+              />
+              <button
+                type="button"
+                class="bullet-remove"
+                :aria-label="'Remove bullet ' + (bi + 1)"
+                @click="removeBullet(pi, bi)"
+              >
+                ×
+              </button>
+            </li>
+          </ul>
+          <button type="button" class="text-link add-bullet" @click="addBullet(pi)">
+            + Add bullet
+          </button>
         </div>
       </div>
 
-      <button class="copy-all-btn" @click="copyAll">
-        {{ copiedRef === 'all' ? 'Everything copied to clipboard ✓' : 'Copy all tags + titles' }}
+      <button class="copy-all-btn" :disabled="downloading" @click="downloadPptx">
+        {{ downloading ? 'Preparing download…' : 'Download PPTX' }}
       </button>
     </section>
 
     <!-- How it works -->
     <section class="section">
-      <h2>How it works</h2>
+      <h2>How AI slides work</h2>
       <div class="steps">
         <div class="step">
           <span class="num">1</span>
-          <h3>Paste</h3>
-          <p>Copy your product description or draft listing text into the box above.</p>
+          <h3>Describe</h3>
+          <p>Enter a topic or tap Pitch / Lesson / Report for a ready-made example.</p>
         </div>
         <div class="step">
           <span class="num">2</span>
           <h3>Generate</h3>
-          <p>Get 13 tags (max 20 characters each, per Etsy's limit) and 5 title options (max 140 characters each).</p>
+          <p>Get a structured deck with titles and bullets you can edit in place.</p>
         </div>
         <div class="step">
           <span class="num">3</span>
-          <h3>Copy</h3>
-          <p>Paste them directly into your Etsy listing. Done in 30 seconds.</p>
+          <h3>Download</h3>
+          <p>Export a PPTX file for PowerPoint, Google Slides, or Keynote.</p>
         </div>
       </div>
     </section>
@@ -260,12 +352,12 @@ useSeoMeta({
       <p class="sub">Everything on the table — no surprises.</p>
       <table class="spec-table">
         <tbody>
-          <tr><th>Output per generation</th><td>13 tags + 5 title options, in one click</td></tr>
-          <tr><th>Character limits</th><td>Tags ≤ 20 chars · Titles ≤ 140 chars (matches Etsy's rules)</td></tr>
-          <tr><th>Categories</th><td>All of them — digital downloads, jewelry, candles, clothing, art, printables…</td></tr>
-          <tr><th>Free plan</th><td>{{ SITE.freePerDay }} generation per day, no signup required</td></tr>
-          <tr><th>Paid plans</th><td>From ${{ SITE.plans.monthly.price }}/month — unlimited generations + history (annual saves {{ SITE.plans.annual.save }}%)</td></tr>
-          <tr><th>Language</th><td>English (Etsy search is English-first)</td></tr>
+          <tr><th>Output per generation</th><td>Editable slide outline + PPTX download</td></tr>
+          <tr><th>Page limits</th><td>Free ≤ {{ SITE.freeMaxPages }} pages · Paid ≤ {{ SITE.paidMaxPages }} pages</td></tr>
+          <tr><th>Free plan</th><td>{{ SITE.freePerDay }} generation per day, watermark on export, no signup</td></tr>
+          <tr><th>Paid plans</th><td>From ${{ SITE.plans.monthly.price }}/month — {{ SITE.paidPerMonth }} presentations/month, no watermark (annual saves {{ SITE.plans.annual.save }}%)</td></tr>
+          <tr><th>Edits</th><td>Change titles and bullets anytime; re-export does not use another credit</td></tr>
+          <tr><th>Language</th><td>Matches your topic language</td></tr>
           <tr><th>Install required</th><td>None — works in any browser, desktop and mobile</td></tr>
         </tbody>
       </table>
@@ -284,6 +376,6 @@ useSeoMeta({
 
     <QuotaModal :open="showQuotaModal" @close="showQuotaModal = false" />
 
-    <SiteFooter show-etsy-disclaimer />
+    <SiteFooter />
   </div>
 </template>

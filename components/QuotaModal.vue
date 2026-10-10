@@ -48,7 +48,8 @@ onUnmounted(() => {
         <p class="quota-copy">
           You’ve used today’s free generation. Create an account now and we’ll gift you
           <strong>{{ SITE.signupBonus }} extra {{ bonusWord }}</strong> so you can keep going —
-          no extra charge for the welcome gift. Or go Pro for unlimited tags and titles.
+          no extra charge for the welcome gift. Or go Pro for {{ SITE.paidPerMonth }} AI slides
+          presentations per month, no watermark.
         </p>
         <button class="quota-cta" type="button" @click="signUp">
           Sign up &amp; get +{{ SITE.signupBonus }} {{ bonusWord }} →

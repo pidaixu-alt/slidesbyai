@@ -129,6 +129,47 @@ a:hover { text-decoration: underline; }
   color: var(--brand); border-radius: 8px; padding: 12px; font-size: 15px; font-weight: 700; cursor: pointer;
 }
 .copy-all-btn:hover { background: var(--brand-soft); }
+.copy-all-btn:disabled { opacity: 0.65; cursor: wait; }
+
+/* Topic chips */
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip-btn {
+  border: 1.5px solid var(--line); background: var(--bg); color: var(--ink-soft);
+  border-radius: 999px; padding: 6px 14px; font-size: 13.5px; font-weight: 600;
+  font-family: inherit; cursor: pointer; transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.chip-btn:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+
+/* Editable slides */
+.slides-list { margin-top: 16px; display: flex; flex-direction: column; gap: 14px; }
+.slide-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px;
+}
+.slide-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--brand); margin-bottom: 8px;
+}
+.slide-title-input {
+  width: 100%; border: 1.5px solid var(--line); border-radius: 8px;
+  padding: 10px 12px; font-size: 16px; font-weight: 700; font-family: inherit;
+  color: var(--ink); background: var(--bg); outline: none;
+}
+.slide-title-input:focus { border-color: var(--brand); }
+.slide-bullets { list-style: none; margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.slide-bullets li { display: flex; align-items: center; gap: 8px; }
+.slide-bullet-input {
+  flex: 1; border: 1.5px solid var(--line); border-radius: 8px;
+  padding: 8px 12px; font-size: 14.5px; font-family: inherit;
+  color: var(--ink); background: #fff; outline: none;
+}
+.slide-bullet-input:focus { border-color: var(--brand); }
+.bullet-remove {
+  border: none; background: none; color: var(--ink-soft); font-size: 20px;
+  line-height: 1; cursor: pointer; padding: 0 4px;
+}
+.bullet-remove:hover { color: #b42318; }
+.add-bullet { margin-top: 10px; font-size: 13.5px; }
 
 /* Sections */
 .section { padding: 46px 0 8px; }
