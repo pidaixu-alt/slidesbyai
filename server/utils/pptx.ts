@@ -43,7 +43,7 @@ export async function buildPptxBuffer(
 
   if (watermark) {
     const slide = pptx.addSlide()
-    slide.addText(`Created with ${brand} — upgrade to remove watermark`, {
+    slide.addText('Created with ' + brand + ' \u2014 upgrade to remove watermark', {
       x: 0.5,
       y: 2.5,
       w: 9,
