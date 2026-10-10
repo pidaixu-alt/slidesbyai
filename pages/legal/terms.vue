@@ -3,7 +3,7 @@ const SITE = useSite()
 
 useSeoMeta({
   title: `Terms of Service — ${SITE.name}`,
-  description: `Terms of Service for ${SITE.name}, an Etsy listing optimization tool for tags and titles.`,
+  description: `Terms of Service for ${SITE.name}, an AI presentation generator at ${SITE.url}.`,
 })
 </script>
 
@@ -24,8 +24,8 @@ useSeoMeta({
           Welcome to {{ SITE.legalName }} (“{{ SITE.name }}”, “we”, “us”, or “our”), an
           individual / sole trader operating under the {{ SITE.name }} brand. There is no
           separate company and no business registered address. These Terms of Service
-          (“Terms”) govern your access to and use of our Etsy listing optimization tools —
-          including tag and title suggestions generated from a product description —
+          (“Terms”) govern your access to and use of our AI presentation tools —
+          including slide outlines and downloadable presentation files generated from your topic —
           available at {{ SITE.url }} (the “Service”).
         </p>
         <p>
@@ -43,10 +43,10 @@ useSeoMeta({
         <h2>2. Description of the Service</h2>
         <h3>2.1 What we provide</h3>
         <p>
-          {{ SITE.name }} is a digital software-as-a-service (SaaS) product that helps sellers
-          draft listing tags and titles for use on Etsy. You paste a product description and
-          receive suggested tags (within Etsy’s typical 20-character tag limit) and title
-          options (within Etsy’s typical 140-character title limit).
+          {{ SITE.name }} is a digital software-as-a-service (SaaS) product that helps you
+          create presentation decks from a short topic or brief. You describe what the deck is
+          for and receive slide titles and bullet points you can edit, then download as a
+          PowerPoint (.pptx) file on paid plans.
         </p>
         <h3>2.2 Instant digital delivery</h3>
         <p>
@@ -60,13 +60,11 @@ useSeoMeta({
           {{ SITE.llmProvider }}. Availability and quality may be affected by those providers.
           We will communicate material outages when we are aware of them.
         </p>
-        <h3>2.4 No affiliation with Etsy</h3>
+        <h3>2.4 Third-party formats</h3>
         <p>
-          {{ SITE.name }} is an independent tool. We are not affiliated with, endorsed by, or
-          sponsored by Etsy, Inc. “Etsy” is a trademark of Etsy, Inc., used here only to
-          describe the marketplace our users sell on. Suggestions do not guarantee search
-          ranking, traffic, or sales. You remain responsible for your listings and for
-          complying with Etsy’s seller policies.
+          Exports use standard presentation formats (such as .pptx). We are not affiliated
+          with Microsoft, Google, or other presentation software vendors. You are responsible
+          for how you use and share decks you create.
         </p>
 
         <h2>3. Accounts</h2>
@@ -87,17 +85,20 @@ useSeoMeta({
 
         <h2>4. Plans (subscription)</h2>
         <p>
-          We offer a free plan ({{ SITE.freePerDay }} generation per day, no signup) and paid
-          subscriptions with unlimited generations: Monthly (${{ SITE.plans.monthly.price }}),
-          Quarterly (${{ SITE.plans.quarterly.price }}) and Annual (${{ SITE.plans.annual.price }}).
-          All paid plans include the same features; they differ only in billing period and price.
-          Current features and pricing are at
+          We offer a free plan ({{ SITE.freePerDay }} presentation per day, up to
+          {{ SITE.freeMaxPages }} slides per deck, watermark on exports, no signup) and paid
+          subscriptions: Monthly (${{ SITE.plans.monthly.price }}), Quarterly
+          (${{ SITE.plans.quarterly.price }}) and Annual (${{ SITE.plans.annual.price }}).
+          Paid plans include {{ SITE.paidPerMonth }} presentations per calendar month, up to
+          {{ SITE.paidMaxPages }} slides per deck, no watermark, and PPTX download. All paid
+          plans include the same quota and features; they differ only in billing period and
+          price. Current features and pricing are at
           <NuxtLink to="/pricing">{{ SITE.url }}/pricing</NuxtLink>.
         </p>
         <p>
-          To protect the service from automated abuse, all plans are subject to a fair-use
-          ceiling of {{ SITE.fairUsePerDay }} generations per day per user. Normal sellers never
-          reach this limit.
+          To protect the service from automated abuse, paid accounts are also subject to a
+          fair-use ceiling of {{ SITE.paidMaxPerDay }} generations per day per user. Normal use
+          stays well below this cap.
         </p>
         <p>
           We may change plan features or introduce new plans. Price changes follow Section 5.
@@ -204,7 +205,7 @@ useSeoMeta({
         <p>
           Subject to these Terms, AI output generated from your input (“Output”) is yours.
           You may use Output for any lawful purpose consistent with Section 10, including in
-          your Etsy listings.
+          your presentations, reports, and teaching materials.
         </p>
         <p>
           By submitting content (“Input”), you grant {{ SITE.legalName }} a limited,
@@ -218,17 +219,17 @@ useSeoMeta({
         </p>
 
         <h2>10. Acceptable use</h2>
-        <p>You may use the Service only for lawful purposes, including listing optimization for your own shop.</p>
+        <p>You may use the Service only for lawful purposes, including creating presentations for work, school, or personal use.</p>
         <p>You agree not to use the Service to:</p>
         <ul>
           <li>Generate unlawful, defamatory, harassing, or fraudulent content.</li>
           <li>Create or assist deepfakes intended to impersonate a real person or mislead viewers.</li>
           <li>Generate sexual content involving minors or otherwise violate child-protection laws.</li>
           <li>Create malware, phishing material, or attack tools.</li>
-          <li>Infringe intellectual property or privacy rights, including trademarked brand names in Etsy tags.</li>
+          <li>Infringe intellectual property or privacy rights of others.</li>
           <li>Bypass security, rate limits, or usage caps, or automate access without permission.</li>
           <li>Resell or sublicense access without our prior written approval.</li>
-          <li>Violate applicable law, card-network rules, or Etsy’s policies.</li>
+          <li>Violate applicable law or card-network rules.</li>
         </ul>
         <p>You also agree not to:</p>
         <ul>
@@ -261,7 +262,7 @@ useSeoMeta({
         <p>
           AI Output may be inaccurate, incomplete, or outdated. Do not treat it as legal,
           medical, financial, or other professional advice. Verify it before you act on it,
-          including before you publish an Etsy listing.
+          including before you present or publish a deck.
         </p>
         <p>
           To the maximum extent permitted by law, {{ SITE.legalName }} is not liable for

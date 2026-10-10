@@ -19,7 +19,7 @@ useSeoMeta({
         <p>
           {{ SITE.legalName }} (“{{ SITE.name }}”, “we”, “us”, or “our”) respects your privacy.
           This Privacy Policy explains how we collect, use, store, and share personal
-          information when you use the {{ SITE.name }} Etsy listing optimization Service at
+          information when you use the {{ SITE.name }} AI presentation Service at
           {{ SITE.url }}, and the rights you may have under laws such as the GDPR and CCPA.
         </p>
         <p>
@@ -48,7 +48,8 @@ useSeoMeta({
             password (stored hashed). The free generator does not require an account.
           </li>
           <li>
-            <strong>Product descriptions</strong> you paste so we can generate tags and titles.
+            <strong>Presentation topics and slide text</strong> you enter so we can generate and
+            refine deck content, and any edits you make before export.
           </li>
           <li>
             <strong>Payment information:</strong> transaction amount and payment status. We do
@@ -61,8 +62,8 @@ useSeoMeta({
         <h3>2.2 Information we collect automatically</h3>
         <ul>
           <li>
-            <strong>Hashed IP address</strong> used to enforce the free daily generation limit.
-            The hash is one-way; we do not store the raw IP for that purpose.
+            <strong>Hashed IP address</strong> used to enforce free daily and paid fair-use
+            limits. The hash is one-way; we do not store the raw IP for that purpose.
           </li>
           <li>
             <strong>Device and network data:</strong> browser type, approximate timezone, and
@@ -156,7 +157,7 @@ useSeoMeta({
           <li>
             <strong>Service providers</strong> bound to confidentiality: hosting (Vercel),
             database (Supabase), and the language-model API ({{ SITE.llmProvider }}) that
-            processes product descriptions solely to return tags and titles.
+            processes your topics and slide-related text solely to return presentation content.
           </li>
           <li>
             <strong>Payments:</strong> card data is processed exclusively by our PCI-DSS
@@ -202,7 +203,7 @@ useSeoMeta({
             </tr>
             <tr>
               <td>Generation records / hashed IP counters</td>
-              <td>As needed for daily limits and abuse prevention, typically up to 90 days</td>
+              <td>As needed for daily/monthly limits and abuse prevention, typically up to 90 days</td>
               <td>Delete or anonymize</td>
             </tr>
             <tr>
@@ -300,8 +301,8 @@ useSeoMeta({
 
         <h2>12. Third-party links</h2>
         <p>
-          The Service may link to third-party sites (including Etsy). This Policy covers only
-          information we collect. We are not responsible for third-party practices.
+          The Service may link to third-party sites (such as our payment processor). This Policy
+          covers only information we collect. We are not responsible for third-party practices.
         </p>
 
         <h2>13. Changes</h2>

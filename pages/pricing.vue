@@ -7,8 +7,8 @@ const checkoutBusy = ref(false)
 const { user, openAuth, authHeaders } = useAuth()
 
 useSeoMeta({
-  title: `Pricing — Etsy Tag Generator Pro (from $${SITE.plans.monthly.price}/month)`,
-  description: `Unlimited tag and title generations from $${SITE.plans.monthly.price}/month — save up to ${SITE.plans.annual.save}% with an annual plan. Free plan stays free forever.`,
+  title: `Pricing — ${SITE.name} Pro (from $${SITE.plans.monthly.price}/month)`,
+  description: `${SITE.paidPerMonth} AI presentations per month from $${SITE.plans.monthly.price}/month — save up to ${SITE.plans.annual.save}% with an annual plan. Free plan: ${SITE.freePerDay}/day with watermark.`,
 })
 
 function selectPlan(plan: PaidPlan) {
@@ -60,6 +60,15 @@ async function onPaidCta(plan: PaidPlan) {
   }
   await goCheckout(plan)
 }
+
+const paidBullets = [
+  `${SITE.paidPerMonth} presentations per month`,
+  `Up to ${SITE.paidMaxPages} slides per deck`,
+  'No watermark · PPTX download',
+  'Generation history',
+  'Priority support',
+  'Cancel anytime',
+] as const
 </script>
 
 <template>
@@ -68,7 +77,9 @@ async function onPaidCta(plan: PaidPlan) {
 
     <section class="hero">
       <h1>Simple pricing</h1>
-      <p class="sub">Start free. Upgrade when your shop needs more. Save up to {{ SITE.plans.annual.save }}% with a longer plan.</p>
+      <p class="sub">
+        Start free. Upgrade when you need more decks. Save up to {{ SITE.plans.annual.save }}% with a longer plan.
+      </p>
       <p v-if="errorNotice" class="error-msg" style="margin-top: 18px; text-align: left">{{ errorNotice }}</p>
     </section>
 
@@ -77,12 +88,12 @@ async function onPaidCta(plan: PaidPlan) {
         <h3>Free</h3>
         <div class="price-num">$0</div>
         <ul>
-          <li>{{ SITE.freePerDay }} generation per day</li>
-          <li>13 tags + 5 titles per generation</li>
+          <li>{{ SITE.freePerDay }} presentation per day</li>
+          <li>Up to {{ SITE.freeMaxPages }} slides per deck</li>
+          <li>Watermark on exports</li>
           <li>No signup required</li>
-          <li>All categories supported</li>
         </ul>
-        <NuxtLink to="/" class="price-cta free">Use the generator</NuxtLink>
+        <NuxtLink to="/" class="price-cta free">Try the generator</NuxtLink>
       </div>
 
       <div
@@ -94,10 +105,7 @@ async function onPaidCta(plan: PaidPlan) {
         <div class="price-num">${{ SITE.plans.monthly.price }}</div>
         <div class="price-period">per month</div>
         <ul>
-          <li>Unlimited generations</li>
-          <li>Generation history</li>
-          <li>Priority support</li>
-          <li>Cancel anytime</li>
+          <li v-for="item in paidBullets" :key="item">{{ item }}</li>
         </ul>
         <button
           class="price-cta"
@@ -119,9 +127,7 @@ async function onPaidCta(plan: PaidPlan) {
         <div class="price-num">${{ SITE.plans.quarterly.price }}</div>
         <div class="price-period">per quarter</div>
         <ul>
-          <li>Unlimited generations</li>
-          <li>Generation history</li>
-          <li>Priority support</li>
+          <li v-for="item in paidBullets" :key="item">{{ item }}</li>
           <li>Equivalent to $6.67/month — save {{ SITE.plans.quarterly.save }}%</li>
         </ul>
         <button
@@ -145,9 +151,7 @@ async function onPaidCta(plan: PaidPlan) {
         <div class="price-num">${{ SITE.plans.annual.price }}</div>
         <div class="price-period">per year</div>
         <ul>
-          <li>Unlimited generations</li>
-          <li>Generation history</li>
-          <li>Priority support</li>
+          <li v-for="item in paidBullets" :key="item">{{ item }}</li>
           <li>Equivalent to $6/month — save {{ SITE.plans.annual.save }}%</li>
         </ul>
         <button
@@ -168,26 +172,27 @@ async function onPaidCta(plan: PaidPlan) {
         <details class="faq-item" open>
           <summary>Is the free plan really free?</summary>
           <p class="faq-a">
-            Yes. {{ SITE.freePerDay }} generation every day, forever, no signup or credit card.
-            Upgrade for unlimited generations if you list products regularly.
+            Yes. {{ SITE.freePerDay }} presentation every day, up to {{ SITE.freeMaxPages }} slides per deck,
+            with a watermark — forever, no signup or credit card. Upgrade for {{ SITE.paidPerMonth }}
+            presentations per month, PPTX without watermark, and up to {{ SITE.paidMaxPages }} slides per deck.
           </p>
         </details>
         <details class="faq-item">
           <summary>Which paid plan should I choose?</summary>
           <p class="faq-a">
-            All paid plans include the same thing — unlimited generations. The only difference is
-            how long you commit and how much you save: Monthly is $9/month, Quarterly is
-            ${{ SITE.plans.quarterly.price }} (save {{ SITE.plans.quarterly.save }}%), and Annual is
-            ${{ SITE.plans.annual.price }} (save {{ SITE.plans.annual.save }}%). If you're serious about
-            your shop, Annual is the best value.
+            All paid plans include the same quota — {{ SITE.paidPerMonth }} presentations per month. The only
+            difference is how long you commit and how much you save: Monthly is ${{ SITE.plans.monthly.price }}/month,
+            Quarterly is ${{ SITE.plans.quarterly.price }} (save {{ SITE.plans.quarterly.save }}%), and Annual is
+            ${{ SITE.plans.annual.price }} (save {{ SITE.plans.annual.save }}%). If you create decks regularly,
+            Annual is the best value.
           </p>
         </details>
         <details class="faq-item">
-          <summary>How do these prices compare to other Etsy SEO tools?</summary>
+          <summary>Is there a daily limit on Pro?</summary>
           <p class="faq-a">
-            Most keyword research tools charge $6–$29/month (eRank, Marmalead, EverBee) and still
-            leave you to pick tags yourself. We hand you finished tags and titles you can paste
-            straight in — starting at just ${{ SITE.plans.annual.price }}/year.
+            Paid plans include {{ SITE.paidPerMonth }} presentations per calendar month. To prevent automated
+            abuse, we also apply a fair-use cap of {{ SITE.paidMaxPerDay }} generations per day per account.
+            Normal use stays well below this cap.
           </p>
         </details>
         <details class="faq-item">
