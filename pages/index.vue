@@ -189,6 +189,7 @@ const faqs = [
 
 // ---------- JSON-LD ----------
 useHead({
+  meta: [{ name: 'waffo-verify', content: '4b8d1cb67b7ac50d6978d916c504b5bb' }],
   script: [
     {
       type: 'application/ld+json',
