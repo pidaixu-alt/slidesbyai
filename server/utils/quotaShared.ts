@@ -3,15 +3,18 @@ import { createHash } from 'node:crypto'
 export type PlanKey = 'free' | 'monthly' | 'quarterly' | 'halfyear' | 'annual'
 
 export const PLAN_PRODUCTS: Record<string, { plan: Exclude<PlanKey, 'free'>; months: number }> = {
-  // Current live products
+  // Slides by AI (current store STO_2oMdSreOcIpWJDGaH24P65)
+  PROD_3rvOTAREa8jBI3Qc3ND4DG: { plan: 'monthly', months: 1 },
+  PROD_5Ji0A6EyjWTgg0wxqoUEVK: { plan: 'quarterly', months: 3 },
+  PROD_54LfTdRkukc5NRNqi7l8CA: { plan: 'annual', months: 12 },
+  // Created under prod env before publish (keep for webhook mapping)
+  PROD_0fp039lRkfP840VA22WUfg: { plan: 'monthly', months: 1 },
+  PROD_5NASwTneHd4ugzT3PHFQwI: { plan: 'quarterly', months: 3 },
+  PROD_2dFml5ow7gGDP7IwBkxQYZ: { plan: 'annual', months: 12 },
+  // Legacy Tagtery products (ignore if webhooks never hit this site)
   PROD_3vO5tmtdpI5rVLgeMnINVx: { plan: 'monthly', months: 1 },
   PROD_6mF7j0m59LfLzl5gYvSj10: { plan: 'quarterly', months: 3 },
   PROD_4iYdAD907eAqIhIXCx4p1A: { plan: 'annual', months: 12 },
-  // Legacy products (keep for webhook mapping of old purchases)
-  PROD_1IEET4PqkTvAZPUu5U4o83: { plan: 'halfyear', months: 6 },
-  PROD_1Kqi16sNEZpqz3RJzgcFeh: { plan: 'monthly', months: 1 },
-  PROD_2190BForCrQ4xSrp8EXYp7: { plan: 'halfyear', months: 6 },
-  PROD_5Zc25cCh0rfEBaUAWRxXNE: { plan: 'annual', months: 12 },
 }
 
 export const PLAN_PRICES: Record<string, Exclude<PlanKey, 'free'>> = {
